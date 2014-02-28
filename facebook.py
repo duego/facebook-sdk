@@ -90,9 +90,18 @@ class GraphAPI(object):
     for the active user from the cookie saved by the SDK.
 
     """
-    def __init__(self, access_token=None, timeout=None):
+    def __init__(self, access_token=None, timeout=None, base_url=None):
+        """
+        base_url - For using a different base URL than https://graph.facebook.com
+
+        """
         self.access_token = access_token
         self.timeout = timeout
+
+        if base_url is None:
+            self.base_url = "https://graph.facebook.com"
+        else:
+            self.base_url = base_url
 
     def get_object(self, id, **args):
         """Fetchs the given object from the graph."""
@@ -211,8 +220,8 @@ class GraphAPI(object):
         }
         post_args.update(kwargs)
         content_type, body = self._encode_multipart_form(post_args)
-        req = urllib2.Request(("https://graph.facebook.com/%s/photos" %
-                               object_id),
+        req = urllib2.Request(("%s/%s/photos" % (
+                               self.base_url, object_id)),
                               data=body)
         req.add_header('Content-Type', content_type)
         try:
@@ -291,7 +300,7 @@ class GraphAPI(object):
                 args["access_token"] = self.access_token
         post_data = None if post_args is None else urllib.urlencode(post_args)
         try:
-            file = urllib2.urlopen("https://graph.facebook.com/" + path + "?" +
+            file = urllib2.urlopen(self.base_url + "/" + path + "?" +
                     urllib.urlencode(args), post_data, timeout=self.timeout)
         except urllib2.HTTPError, e:
             response = _parse_json(e.read())
@@ -300,7 +309,7 @@ class GraphAPI(object):
             # Timeout support for Python <2.6
             if self.timeout:
                 socket.setdefaulttimeout(self.timeout)
-            file = urllib2.urlopen("https://graph.facebook.com/" + path + "?" +
+            file = urllib2.urlopen(self.base_url + "/" + path + "?" +
                                     urllib.urlencode(args), post_data)
         try:
             fileInfo = file.info()
@@ -430,7 +439,7 @@ class GraphAPI(object):
             "grant_type": "fb_exchange_token",
             "fb_exchange_token": self.access_token,
         }
-        response = urllib.urlopen("https://graph.facebook.com/oauth/"
+        response = urllib.urlopen(self.base_url + "/oauth/"
                             "access_token?" + urllib.urlencode(args)).read()
         query_str = parse_qs(response)
         if "access_token" in query_str:
@@ -569,7 +578,7 @@ def get_access_token_from_code(code, redirect_uri, app_id, app_secret):
     }
     # We would use GraphAPI.request() here, except for that the fact
     # that the response is a key-value pair, and not JSON.
-    response = urllib.urlopen("https://graph.facebook.com/oauth/access_token" +
+    response = urllib.urlopen(self.base_url + "/oauth/access_token" +
                               "?" + urllib.urlencode(args)).read()
     query_str = parse_qs(response)
     if "access_token" in query_str:
@@ -598,7 +607,7 @@ def get_app_access_token(app_id, app_secret):
             'client_id': app_id,
             'client_secret': app_secret}
 
-    file = urllib2.urlopen("https://graph.facebook.com/oauth/access_token?" +
+    file = urllib2.urlopen(self.base_url + "/oauth/access_token?" +
                               urllib.urlencode(args))
 
     try:
